@@ -1,0 +1,62 @@
+#!/usr/bin/python
+import sys
+import itertools
+import subprocess as sp
+
+def compile():
+    print "Running make..."
+    p = sp.Popen(["make"])
+    p.communicate()
+
+def settFromFile(f):
+    sett = {}
+    with open(f, 'r') as f:
+        for line in f.readlines():
+            if len(line.strip()) == 0:
+                continue
+            arg = line.split("=")
+            sett[arg[0].strip()] = [arg[1].strip()]
+    return sett
+
+def main(argv):
+    #input: S:[1,2,3] A:3
+    compile()
+    sett = {
+    'S':[100],
+    'V':[10],
+    'U':[4],
+    'A':[10],
+    'T':[4],
+    'P':[1]
+    }
+
+    for arg in argv:
+        spl = arg.split(":")
+        k = spl[0].strip();
+        v = spl[1].strip()
+        if k == "f":
+            print "Overriding all and use settings from file:", v
+            sett = settFromFile(v)
+            break;
+        try:
+            v = int(v)
+            sett[k] = [v]
+            continue
+        except ValueError:
+            pass
+        ran = v.strip("][")
+        ran = ran.split(",")
+        v = range(*map(int, ran))
+        sett[k] = v
+
+    keys = ['S', 'V', 'U', 'A', 'T', 'P']
+    s = [sett[_k] for _k in keys]
+    setts = list(itertools.product(*s))
+    for s in setts:
+        args = ["./comp"] + map(str, list(s))
+        p = sp.Popen(args)
+        p.communicate()
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:]);

@@ -1,0 +1,13 @@
+#!/bin/sh
+
+echo " "
+echo "TESTING WITH PARAMS ========"
+echo 'S:' $1
+echo 'V:' $2
+echo "U:"$3 "A:" $4 "T:" $5 "P:" $6
+echo " "
+(cd orig && java -Xmx2048M Dataflow $1 $2 $3 $4 $5 $6 > ../o) &&
+(cd par && java -Xmx2048M Dataflow $1 $2 $3 $4 $5 $6 > ../p) &&
+(cd parmon && java -Xmx2048M Dataflow $1 $2 $3 $4 $5 $6 > ../pm) &&
+diff3 o p pm > d
+less d
