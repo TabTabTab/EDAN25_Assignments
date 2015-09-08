@@ -35,9 +35,9 @@ def main(argv):
         k = spl[0].strip();
         v = spl[1].strip()
         if k == "f":
-            print "Overriding all and use settings from file:", v
+            print "Overriding all and use base settings from file:", v
             sett = settFromFile(v)
-            break;
+            continue;
         try:
             v = int(v)
             sett[k] = [v]

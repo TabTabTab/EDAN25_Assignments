@@ -217,11 +217,10 @@ class Dataflow {
 		nthread = Integer.parseInt(args[4]);
 		print = Integer.parseInt(args[5]) != 0;
 	
-		System.out.println("nsym = " + nsym);
-		System.out.println("nvertex = " + nvertex);
-		System.out.println("maxsucc = " + maxsucc);
-		System.out.println("nactive = " + nactive);
-
+		System.out.println("Nsym = " + nsym);
+		System.out.println("Nvertex = " + nvertex);
+		System.out.println("Maxsucc = " + maxsucc);
+		System.out.println("Nactive = " + nactive);
 		vertex = new Vertex[nvertex];
 
 		for (i = 0; i < vertex.length; ++i)
