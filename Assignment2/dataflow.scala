@@ -8,6 +8,9 @@ case class Stop();
 case class Ready();
 case class Go();
 case class Change(in: BitSet);
+case class ActorIsWaiting(index: Int, itter: Int);
+case class AreYouDone(itter: Int);
+case class IAmDone(index: Int);
 
 class Random(seed: Int) {
         var w = seed + 1;
@@ -25,7 +28,7 @@ class Random(seed: Int) {
 class Controller(val cfg: Array[Vertex]) extends Actor {
   var started = 0;
   val begin   = System.currentTimeMillis();
-
+  var nWaiting = 0;
   // LAB 2: The controller must figure out when
   //        to terminate all actors somehow.
 
@@ -35,14 +38,55 @@ class Controller(val cfg: Array[Vertex]) extends Actor {
         started += 1;
         //println("controller has seen " + started);
         if (started == cfg.length) {
-          for (u <- cfg)
-            u ! new Go;
+          cfg.map( _ ! new Go );
+          
         }
         act();
+      }
+      case ActorIsWaiting() => {
+        nWaiting += 1;
+        if (nWaiting == cfg.length) {
+          cfg.map( _ ! new AreYouDone )
+        }
       }
     }
   }
 }
+
+class VertexWorker(val vertex: Vertex) extends Actor {
+  var work = False;
+
+  def act() {
+    react {
+      case Start() => {
+        vertex ! new Go;
+        //println("started " + index);
+        act();
+      }
+
+      case Go() => {
+        succ.map(x=>out.or(x.in));
+        old = in;
+        newIn = new BitSet();
+        newIn.or(out);
+        newIn.andNot(def);
+        newIn.or(use);
+        in = newIn;
+        if( !in.equals(old) )
+          pred.map(_ ! new Go );
+        
+        // LAB 2: Start working with this vertex.
+        controller ! new ActorIsWaiting;
+        act();
+      }
+      case AreYouDone() => {
+
+      }
+      case Stop()  => { }
+    }
+  }
+} 
+
 
 class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
   var pred: List[Vertex] = List();
@@ -51,13 +95,15 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
   val defs               = new BitSet(s);
   var in                 = new BitSet(s);
   var out                = new BitSet(s);
-
+  var now = 0;
+  var then = 0;
   def connect(that: Vertex)
   {
     //println(this.index + "->" + that.index);
     this.succ = that :: this.succ;
     that.pred = this :: that.pred;
   }
+
 
   def act() {
     react {
@@ -68,10 +114,24 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
       }
 
       case Go() => {
+        controller ! new Working;
+        succ.map(x => out.or( x.in ));
+        old = in;
+        newIn = new BitSet();
+        newIn.or(out);
+        newIn.andNot(def);
+        newIn.or(use);
+        in = newIn;
+        if(!in.equals(old))
+          pred.map(_ ! new Go );
+          
         // LAB 2: Start working with this vertex.
+        controller ! new ActorIsWaiting;
         act();
       }
+      case AreYouDone() => {
 
+      }
       case Stop()  => { }
     }
   }
