@@ -8,9 +8,10 @@ case class Stop();
 case class Ready();
 case class Go();
 case class Change(in: BitSet);
-case class ActorIsWaiting(index: Int, itter: Int);
 case class AreYouDone(itter: Int);
 case class IAmDone(index: Int);
+case class WorkInProgress();
+case class WorkIsDone();
 
 class Random(seed: Int) {
         var w = seed + 1;
@@ -29,6 +30,7 @@ class Controller(val cfg: Array[Vertex]) extends Actor {
   var started = 0;
   val begin   = System.currentTimeMillis();
   var nWaiting = 0;
+  var nInProgress = 0;
   // LAB 2: The controller must figure out when
   //        to terminate all actors somehow.
 
@@ -43,49 +45,22 @@ class Controller(val cfg: Array[Vertex]) extends Actor {
         }
         act();
       }
-      case ActorIsWaiting() => {
-        nWaiting += 1;
-        if (nWaiting == cfg.length) {
-          cfg.map( _ ! new AreYouDone )
-        }
+      case WorkInProgress() => {
+	nInProgress += 1;
+	act();	
+	}
+      case WorkIsDone() => {
+	nInProgress -= 1;
+	if (nInProgress == 0) {
+	   	// Everything is done
+		// Wake up the main thread
+	    cfg.map( _ ! new Stop );
+	}
+      }
+	act();
       }
     }
-  }
 }
-
-class VertexWorker(val vertex: Vertex) extends Actor {
-  var work = False;
-
-  def act() {
-    react {
-      case Start() => {
-        vertex ! new Go;
-        //println("started " + index);
-        act();
-      }
-
-      case Go() => {
-        succ.map(x=>out.or(x.in));
-        old = in;
-        newIn = new BitSet();
-        newIn.or(out);
-        newIn.andNot(def);
-        newIn.or(use);
-        in = newIn;
-        if( !in.equals(old) )
-          pred.map(_ ! new Go );
-        
-        // LAB 2: Start working with this vertex.
-        controller ! new ActorIsWaiting;
-        act();
-      }
-      case AreYouDone() => {
-
-      }
-      case Stop()  => { }
-    }
-  }
-} 
 
 
 class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
@@ -114,25 +89,29 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
       }
 
       case Go() => {
-        controller ! new Working;
+	controller ! new WorkInProgress;
         succ.map(x => out.or( x.in ));
         old = in;
         newIn = new BitSet();
         newIn.or(out);
-        newIn.andNot(def);
+        newIn.andNot(defs);
         newIn.or(use);
         in = newIn;
-        if(!in.equals(old))
+        if(!in.equals(old)) {
           pred.map(_ ! new Go );
-          
+        }
         // LAB 2: Start working with this vertex.
-        controller ! new ActorIsWaiting;
+	controller ! new WorkIsDone;
         act();
       }
       case AreYouDone() => {
 
       }
-      case Stop()  => { }
+      case Stop()  => {
+	// Everything is done!
+	
+      }
+	
     }
   }
 
