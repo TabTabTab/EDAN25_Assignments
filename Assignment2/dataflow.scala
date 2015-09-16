@@ -8,7 +8,6 @@ case class Stop();
 case class Ready();
 case class Go();
 case class Change(in: BitSet);
-case class AreYouDone(itter: Int);
 case class IAmDone(index: Int);
 case class WorkInProgress();
 case class WorkIsDone();
@@ -26,7 +25,7 @@ class Random(seed: Int) {
         }
 }
 
-class Controller(val cfg: Array[Vertex]) extends Actor {
+class Controller(val cfg: Array[Vertex], val print: Int) extends Actor {
   var started = 0;
   val begin   = System.currentTimeMillis();
   var nWaiting = 0;
@@ -46,20 +45,26 @@ class Controller(val cfg: Array[Vertex]) extends Actor {
         act();
       }
       case WorkInProgress() => {
-	nInProgress += 1;
-	act();	
-	}
-      case WorkIsDone() => {
-	nInProgress -= 1;
-	if (nInProgress == 0) {
-	   	// Everything is done
-		// Wake up the main thread
-	    cfg.map( _ ! new Stop );
-	}
+          nInProgress += 1;
+          act();	
       }
-	act();
+      case WorkIsDone() => {
+        nInProgress -= 1;
+        if (nInProgress == 0) {
+	   	   // Everything is done
+		    // Wake up the main thread
+          cfg.map( _ ! new Stop );
+          val end = System.currentTimeMillis();
+          println("Time taken: " + (end - begin))
+          if (print!=0)
+            cfg.map( v => v.print);
+        }else{
+          act();
+        }
+        
       }
     }
+}
 }
 
 
@@ -70,8 +75,6 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
   val defs               = new BitSet(s);
   var in                 = new BitSet(s);
   var out                = new BitSet(s);
-  var now = 0;
-  var then = 0;
   def connect(that: Vertex)
   {
     //println(this.index + "->" + that.index);
@@ -89,13 +92,13 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
       }
 
       case Go() => {
-	controller ! new WorkInProgress;
+        controller ! new WorkInProgress;
         succ.map(x => out.or( x.in ));
-        old = in;
-        newIn = new BitSet();
+        var old = in;
+        var newIn = new BitSet();
         newIn.or(out);
         newIn.andNot(defs);
-        newIn.or(use);
+        newIn.or(uses);
         in = newIn;
         if(!in.equals(old)) {
           pred.map(_ ! new Go );
@@ -103,9 +106,6 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
         // LAB 2: Start working with this vertex.
 	controller ! new WorkIsDone;
         act();
-      }
-      case AreYouDone() => {
-
       }
       case Stop()  => {
 	// Everything is done!
@@ -126,7 +126,9 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
   def print = {
     printSet("use", index, uses);
     printSet("def", index, defs);
+    println("");
     printSet("in", index, in);
+    printSet("out", index, out);
     println("");
   }
 }
@@ -176,7 +178,7 @@ object Driver {
     nactive        = args(3).toInt;
     val print      = args(4).toInt;
     val cfg        = new Array[Vertex](nvertex);
-    val controller = new Controller(cfg);
+    val controller = new Controller(cfg, print);
 
     controller.start;
 
@@ -195,9 +197,5 @@ object Driver {
 
     for (i <- 0 until nvertex)
       cfg(i) ! new Start;
-
-    if (print != 0)
-      for (i <- 0 until nvertex)
-        cfg(i).print;
   }
 }
