@@ -10,7 +10,7 @@
 
 
 #define PARALLEL
-#define NSAMPLES (10)
+#define NSAMPLES (100)
 #define NSPLITS (3)
 #define NTHREADS (1 << NSPLITS)
 
@@ -45,8 +45,9 @@ static double sec(void)
 double find_that_pivot(double* a, int length)
 {
     int index = 0;
-    qsort(a, NSAMPLES, sizeof(double), cmp);
-    index = NSAMPLES / 2 ;
+    int nsamp = length < NSAMPLES ? length : NSAMPLES;
+    qsort(a, nsamp, sizeof(double), cmp);
+    index = nsamp / 2 ;
     return a[index];
 }
 
@@ -62,15 +63,15 @@ void inner_part_array(double* a, int l_start, int length, int depth, int i)
     //printf("IN: l_start: %d, length: %d, depth: %d, i: %d \n", l_start, length, depth, i);
     if(depth == NSPLITS){
         split_points[i] = l_start;
-        printf("IN: l_start: %d, length: %d, depth: %d, i: %d \n", l_start, length, depth, i);
+        //printf("IN: l_start: %d, length: %d, depth: %d, i: %d \n", l_start, length, depth, i);
         return;
     }
     depth ++;
 
     int spl = NSPLITS - depth;
-    printf("i:%d\n", i);
+    //printf("i:%d\n", i);
     int i_r = i + (1 << spl);
-    printf("i_r: %d\n", i_r);
+    //printf("i_r: %d\n", i_r);
     int r_start = bin_split(&a[l_start], length);
     r_start += l_start;
     //printf("RSTART: %d\n", r_start);
@@ -78,9 +79,9 @@ void inner_part_array(double* a, int l_start, int length, int depth, int i)
     int l_length = r_start - l_start;
 
     //printf("OUT: l_start: %d, l_length: %d, r_start: %d, r_length %d \n", l_start, l_length, r_start, r_length);
-    printf("left:\n");
+    //printf("left:\n");
     inner_part_array(a, l_start, l_length, depth, i);
-    printf("right:\n");
+    //printf("right:\n");
     inner_part_array(a, r_start, r_length, depth, i_r);
 }
 /**
@@ -97,7 +98,7 @@ int bin_split(double* a, int length)
         }
     }
     double percentage = ((double)n_low) / length;
-    //printf("\n\n pivot: %f,n_low: %d, percent in l: %f \n\n", pivot, n_low, percentage);
+    //printf(" pivot percent: %f \n\n", percentage);
     int temp;
     int next_high_index = n_low;
     for(int i=0; i<n_low ;i++){
@@ -175,8 +176,7 @@ static int status_is_ok(double* a, int length)
     return 1;
 }
 
-
-int main(int ac, char** av)
+int do_seq(int ac, char** av)
 {
     int        n = 20000;
     int        i;
@@ -186,6 +186,84 @@ int main(int ac, char** av)
     if (ac > 1)
         sscanf(av[1], "%d", &n);
 
+    srand(getpid());
+
+    a = malloc(n * sizeof a[0]);
+    for (i = 0; i < n; i++){
+        a[i] = rand();
+        //printf("%f\n", a[i]);
+    }
+    start = sec();
+
+    qsort(a, n, sizeof a[0], cmp);
+
+
+    end = sec();
+
+    printf("%1.4f s\n", end - start);
+    //print_array(a, n);
+    status_is_ok(a, n);;
+    free(a);
+
+    return 0;
+}
+
+int do_par(int ac, char** av)
+{
+    int        n = 20000;
+    int        i;
+    double*        a;
+    double        start, end;
+
+    if (ac > 1)
+        sscanf(av[1], "%d", &n);
+
+    srand(getpid());
+
+    a = malloc(n * sizeof a[0]);
+    for (i = 0; i < n; i++){
+        a[i] = rand();
+        //printf("%f\n", a[i]);
+    }
+    start = sec();
+
+
+    split_points = malloc(sizeof(int)*(NTHREADS+1));
+    par_sort(a, n, sizeof a[0], cmp);
+
+
+    end = sec();
+
+    printf("%1.4f s\n", end - start);
+    //print_array(a, n);
+    status_is_ok(a, n);;
+    free(a);
+
+    return 0;
+}
+
+int main(int ac, char** av)
+{
+/*
+    int        n = 20000;
+    int        i;
+    double*        a;
+    double        start, end;
+
+
+
+    if (ac > 1)
+        sscanf(av[1], "%d", &n);
+
+    */
+    printf("======================================\n");
+    printf("doing par\n");
+    do_par(ac, av);
+    printf("doing seq:\n");
+    do_seq(ac, av);
+    printf("======================================\n");
+    return 0;
+    /*
     srand(getpid());
 
     a = malloc(n * sizeof a[0]);
@@ -205,9 +283,11 @@ int main(int ac, char** av)
     end = sec();
 
     printf("%1.4f s\n", end - start);
+
     //print_array(a, n);
     status_is_ok(a, n);;
     free(a);
 
     return 0;
+    */
 }
