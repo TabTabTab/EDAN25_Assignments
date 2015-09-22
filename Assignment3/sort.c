@@ -14,54 +14,57 @@ static double sec(void)
     gettimeofday(&t, NULL);
     double t_us = (double)t.tv_usec;
     double t_s = (double)t.tv_sec;
-    double t_d = t_s + t_us / 1000000;
-    return t_d;
+    double val = t_s + t_us / 1000000;
+    return val;
 }
 
 void par_sort(
-	void*		base,	// Array to sort.
-	size_t		n,	// Number of elements in base.
-	size_t		s,	// Size of each element.
-	int		(*cmp)(const void*, const void*)) // Behaves like strcmp
+    void*        base,    // Array to sort.
+    size_t        n,    // Number of elements in base.
+    size_t        s,    // Size of each element.
+    int        (*cmp)(const void*, const void*)) // Behaves like strcmp
 {
 }
 
 static int cmp(const void* ap, const void* bp)
 {
-	/* you need to modify this function to compare doubles. */
-
-	return 0;
+    double *p1, *p2;
+    p1 = (double*)ap;
+    p2 = (double*)bp;
+    double d1 = (double)(*p1);
+    double d2 = (double)(*p2);
+    return d1 < d2 ? -1 : d1 == d2 ? 0 : 1;
 }
 
 int main(int ac, char** av)
 {
-	int		n = 2000000;
-	int		i;
-	double*		a;
-	double		start, end;
+    int        n = 2000000;
+    int        i;
+    double*        a;
+    double        start, end;
 
-	if (ac > 1)
-		sscanf(av[1], "%d", &n);
+    if (ac > 1)
+        sscanf(av[1], "%d", &n);
 
-	srand(getpid());
+    srand(getpid());
 
-	a = malloc(n * sizeof a[0]);
-	for (i = 0; i < n; i++)
-		a[i] = rand();
+    a = malloc(n * sizeof a[0]);
+    for (i = 0; i < n; i++)
+        a[i] = rand();
 
-	start = sec();
+    start = sec();
 
 #ifdef PARALLEL
-	par_sort(a, n, sizeof a[0], cmp);
+    par_sort(a, n, sizeof a[0], cmp);
 #else
-	qsort(a, n, sizeof a[0], cmp);
+    qsort(a, n, sizeof a[0], cmp);
 #endif
 
-	end = sec();
+    end = sec();
 
-	printf("%1.2f s\n", end - start);
+    printf("%1.2f s\n", end - start);
 
-	free(a);
+    free(a);
 
-	return 0;
+    return 0;
 }
