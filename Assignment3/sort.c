@@ -172,21 +172,17 @@ static int status_is_ok(double* a, int length)
         }
         last = a[i];
     }
-    printf("\n\nIts all sorted!, you are like a God\n");
+    //printf("\n\nIts all sorted!, you are like a God\n");
     return 1;
 }
 
-int do_seq(int ac, char** av)
+void do_seq(int n, int seed)
 {
-    int        n = 20000;
     int        i;
     double*        a;
     double        start, end;
 
-    if (ac > 1)
-        sscanf(av[1], "%d", &n);
-
-    srand(getpid());
+    srand(seed);
 
     a = malloc(n * sizeof a[0]);
     for (i = 0; i < n; i++){
@@ -205,25 +201,21 @@ int do_seq(int ac, char** av)
     status_is_ok(a, n);;
     free(a);
 
-    return 0;
 }
 
-int do_par(int ac, char** av)
+
+void do_par(int n, int seed)
 {
-    int        n = 20000;
     int        i;
     double*        a;
     double        start, end;
 
-    if (ac > 1)
-        sscanf(av[1], "%d", &n);
 
-    srand(getpid());
+    srand(seed);
 
     a = malloc(n * sizeof a[0]);
     for (i = 0; i < n; i++){
         a[i] = rand();
-        //printf("%f\n", a[i]);
     }
     start = sec();
 
@@ -239,28 +231,20 @@ int do_par(int ac, char** av)
     status_is_ok(a, n);;
     free(a);
 
-    return 0;
 }
 
 int main(int ac, char** av)
 {
-/*
     int        n = 20000;
-    int        i;
-    double*        a;
-    double        start, end;
-
-
 
     if (ac > 1)
         sscanf(av[1], "%d", &n);
-
-    */
+    int seed = getpid();
     printf("======================================\n");
     printf("doing par\n");
-    do_par(ac, av);
+    do_par(n, seed);
     printf("doing seq:\n");
-    do_seq(ac, av);
+    do_seq(n, seed);
     printf("======================================\n");
     return 0;
     /*
