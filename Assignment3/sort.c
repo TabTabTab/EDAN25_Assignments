@@ -36,9 +36,16 @@ static int cmp(const void* ap, const void* bp)
     return d1 < d2 ? -1 : d1 == d2 ? 0 : 1;
 }
 
+static void print_array(const double* a, int length)
+{
+    for( int i = 0; i < length; ++i )
+        printf(" %f ", a[i] );
+    printf("\n");
+}
+
 int main(int ac, char** av)
 {
-    int        n = 2000000;
+    int        n = 20;
     int        i;
     double*        a;
     double        start, end;
@@ -49,9 +56,10 @@ int main(int ac, char** av)
     srand(getpid());
 
     a = malloc(n * sizeof a[0]);
-    for (i = 0; i < n; i++)
+    for (i = 0; i < n; i++){
         a[i] = rand();
-
+        printf("%f\n", a[i]);
+    }
     start = sec();
 
 #ifdef PARALLEL
@@ -63,7 +71,7 @@ int main(int ac, char** av)
     end = sec();
 
     printf("%1.2f s\n", end - start);
-
+    print_array(a, n);
     free(a);
 
     return 0;
