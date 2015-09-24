@@ -9,7 +9,6 @@
 #include <unistd.h>
 
 
-#define PARALLEL
 #define NSAMPLES (100)
 #define NSPLITS (3)
 #define NTHREADS (1 << NSPLITS)
@@ -19,10 +18,11 @@ int* split_points;
 static int cmp(const void* ap, const void* bp);
 void inner_part_array(double* a, int l_start, int length, int depth, int i);
 int bin_split(double* a, int length);
+
 struct t_args {
+    size_t size;
     void* a;
     int length;
-    size_t size;
 };
 typedef struct t_args t_args;
 
@@ -60,28 +60,20 @@ int partition_array(double* a, int length)
 
 void inner_part_array(double* a, int l_start, int length, int depth, int i)
 {
-    //printf("IN: l_start: %d, length: %d, depth: %d, i: %d \n", l_start, length, depth, i);
     if(depth == NSPLITS){
         split_points[i] = l_start;
-        //printf("IN: l_start: %d, length: %d, depth: %d, i: %d \n", l_start, length, depth, i);
         return;
     }
     depth ++;
 
     int spl = NSPLITS - depth;
-    //printf("i:%d\n", i);
     int i_r = i + (1 << spl);
-    //printf("i_r: %d\n", i_r);
     int r_start = bin_split(&a[l_start], length);
     r_start += l_start;
-    //printf("RSTART: %d\n", r_start);
     int r_length = length - (r_start - l_start);
     int l_length = r_start - l_start;
 
-    //printf("OUT: l_start: %d, l_length: %d, r_start: %d, r_length %d \n", l_start, l_length, r_start, r_length);
-    //printf("left:\n");
     inner_part_array(a, l_start, l_length, depth, i);
-    //printf("right:\n");
     inner_part_array(a, r_start, r_length, depth, i_r);
 }
 /**
@@ -230,6 +222,7 @@ void do_par(int n, int seed)
     //print_array(a, n);
     status_is_ok(a, n);;
     free(a);
+    free(split_points);
 
 }
 
