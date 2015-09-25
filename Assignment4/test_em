@@ -1,0 +1,8 @@
+#!/bin/sh
+echo "running original..."
+(cd live_orig && make > ../orig.o)
+echo "running par..."
+(cd live_par && make > ../par.o)
+echo "diffing par vs orig"
+diff orig.o par.o > d
+less d

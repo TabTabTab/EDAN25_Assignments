@@ -11,12 +11,12 @@ OUT		= live
 
 LDFLAGS		= -lpthread -static
 
-S=100000
-V=100000
+S=10000
+V=1000
 U=4
-A=1000
-T=4
-P=0
+A=100
+T=1
+P=1
 
 all: $(OBJS)	
 	$(CC) $(CFLAGS) $(OBJS) $(LDFLAGS) -o $(OUT)

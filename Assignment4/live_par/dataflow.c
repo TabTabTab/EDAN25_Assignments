@@ -9,6 +9,28 @@
 #include "list.h"
 #include "set.h"
 
+
+#define NTHREADS (4)
+#define MINWORK (6)
+#define MAXWORK (2500)
+pthread_mutex_t work_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond  = PTHREAD_COND_INITIALIZER;
+void lock()
+{
+        pthread_mutex_lock(&work_lock);
+}
+void unlock()
+{
+        pthread_mutex_unlock(&work_lock);
+}
+void notifyAll()
+{
+        pthread_cond_broadcast(&cond);
+}
+void wait()
+{
+        pthread_cond_wait(&cond, &work_lock);
+}
 typedef struct vertex_t        vertex_t;
 typedef struct task_t        task_t;
 
@@ -30,8 +52,10 @@ struct vertex_t {
         bool listed;                /* on worklist                        */
 };
 
+
 static void clean_vertex(vertex_t* v);
 static void init_vertex(vertex_t* v, size_t index, size_t nsymbol, size_t max_succ);
+void node_liveness(vertex_t* u, list_t** new_work);
 
 cfg_t* new_cfg(size_t nvertex, size_t nsymbol, size_t max_succ)
 {
@@ -114,55 +138,150 @@ void setbit(cfg_t* cfg, size_t v, set_type_t type, size_t index)
         set(cfg->vertex[v].set[type], index);
 }
 
-void liveness(cfg_t* cfg)
+static int n_rem_work = 0;
+static list_t* remaining_work = NULL;
+static int n_waiting = 0;
+size_t nsymbols;
+/**
+ * Returns the number of work in the list
+ */
+int work_is_finished()
 {
-        vertex_t*        u;
+    return !n_rem_work && NTHREADS == n_waiting;
+}
+
+void add_work(list_t* new_work)
+{
+        n_rem_work += length(new_work);
+
+        append(&remaining_work, new_work);
+        notifyAll();
+}
+
+
+list_t* look_for_work()
+{
+    list_t* work = NULL;
+    while(!work_is_finished() && !n_rem_work){
+        wait();
+    }
+    if(n_rem_work){
+        //make sure to take the right amount of work
+        int n_work = n_rem_work / NTHREADS + 1;
+        n_work = n_work < MINWORK ? MINWORK : n_work;
+        n_work = n_work > MAXWORK ? MAXWORK : n_work;
+        n_work = n_work > n_rem_work ? n_rem_work : n_work;
+        n_rem_work -= n_work;
+        //retrieve the work
+        for(int i=0;i< n_work; ++i){
+                vertex_t* data = remove_first(&remaining_work);
+                insert_last(&work, data);
+        }
+    }
+    return work;
+}
+
+list_t* get_work(list_t* new_work)
+{
+        lock();
+        n_waiting++;
+        add_work(new_work);
+        list_t* work = look_for_work();
+        if(work != NULL)
+            n_waiting--;
+        unlock();
+        return work;
+}
+
+void* thread_work(void* dummy_arg)
+{
+    size_t mywork = 0;
+    list_t* new_work = NULL;
+    list_t* work = get_work(new_work);
+    vertex_t* vertex;
+    while(work!=NULL){
+        vertex = remove_first(&work);
+        while(vertex!=NULL){
+            mywork++;
+            node_liveness(vertex, &new_work);
+            vertex = remove_first(&work);
+        }
+        work = get_work(new_work);
+        new_work = NULL;
+    }
+    printf("mywork was: %zu\n", mywork);
+    return NULL;
+}
+
+
+void node_liveness(vertex_t* u, list_t** new_work)
+{
         vertex_t*        v;
         set_t*                prev;
-        size_t                i;
         size_t                j;
-        list_t*                worklist;
         list_t*                p;
         list_t*                h;
 
-        worklist = NULL;
+        u->listed = false;
 
+        reset(u->set[OUT]);
+
+        for (j = 0; j < u->nsucc; ++j){
+                or(u->set[OUT], u->set[OUT], u->succ[j]->set[IN]);
+        }
+        prev = u->prev;
+        u->prev = u->set[IN];
+        u->set[IN] = prev;
+
+        /* in our case liveness information... */
+        propagate(u->set[IN], u->set[OUT], u->set[DEF], u->set[USE]);
+
+        if (u->pred != NULL && !equal(u->prev, u->set[IN])) {
+                p = h = u->pred;
+                do {
+                        v = p->data;
+                        if (!v->listed) {
+                                v->listed = true;
+                                insert_last(new_work, v);
+                        }
+
+                        p = p->succ;
+
+                } while (p != h);
+        }
+
+}
+
+
+void liveness(cfg_t* cfg)
+{
+        printf("doing live\n");
+        vertex_t*        u;
+        size_t                i;
+
+        remaining_work = NULL;
         for (i = 0; i < cfg->nvertex; ++i) {
+                n_rem_work++;
                 u = &cfg->vertex[i];
 
-                insert_last(&worklist, u);
+                insert_last(&remaining_work, u);
                 u->listed = true;
         }
+        nsymbols = cfg->nsymbol;
 
-        while ((u = remove_first(&worklist)) != NULL) {
-                u->listed = false;
+        pthread_t threads[NTHREADS];
 
-                reset(u->set[OUT]);
+        for(int i=0;i<NTHREADS; ++i){
+            pthread_create(&threads[i], NULL, thread_work, NULL);
+        }
 
-                for (j = 0; j < u->nsucc; ++j)
-                        or(u->set[OUT], u->set[OUT], u->succ[j]->set[IN]);
-
-                prev = u->prev;
-                u->prev = u->set[IN];
-                u->set[IN] = prev;
-
-                /* in our case liveness information... */
-                propagate(u->set[IN], u->set[OUT], u->set[DEF], u->set[USE]);
-
-                if (u->pred != NULL && !equal(u->prev, u->set[IN])) {
-                        p = h = u->pred;
-                        do {
-                                v = p->data;
-                                if (!v->listed) {
-                                        v->listed = true;
-                                        insert_last(&worklist, v);
-                                }
-
-                                p = p->succ;
-
-                        } while (p != h);
+        //wait for threads
+        for(int i=0; i<NTHREADS; ++i){
+                if(pthread_join(threads[i], NULL)) {
+                    fprintf(stderr, "Error joining thread\n");
                 }
         }
+
 }
 
 void print_sets(cfg_t* cfg, FILE *fp)
