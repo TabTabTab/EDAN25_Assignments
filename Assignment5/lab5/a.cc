@@ -10,13 +10,14 @@ class worklist_t {
 	int*			a;
 	size_t			n;
 	size_t			total;	// sum a[0]..a[n-1]
+	std::mutex		m;
+	std::condition_variable c;
 		
 public:
 	worklist_t(size_t max)
 	{
 		n = max+1;
 		total = 0;
-
 		a = (int*) calloc(n, sizeof(a[0]));
 		if (a == NULL) {
 			fprintf(stderr, "no memory!\n");
@@ -46,7 +47,7 @@ public:
 		int				i;
 		int				num;
 
-#if 0
+#if 1
 		/* hint: if your class has a mutex m
 		 * and a condition_variable c, you
 		 * can lock it and wait for a number 
@@ -83,6 +84,10 @@ public:
 		} else
 			i = 0;
 
+		
+		u.unlock();
+		c.notify_one();
+		
 		return i;
 	}
 };
