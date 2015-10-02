@@ -6,11 +6,12 @@
 
 #include "timebase.h"
 
+static void addToSum(int increment);
 class worklist_t {
 	int*			a;
 	size_t			n;
 	size_t			total;	// sum a[0]..a[n-1]
-	std::mutex		m;
+	std::mutex		m, ms;
 	std::condition_variable c;
 		
 public:
@@ -121,9 +122,17 @@ static void consume()
 
 	while ((n = worklist->get()) > 0) {
 		f = factorial(n);
-		sum += f;
+		addToSum(f);
 	}
 }
+
+static void addToSum(int increment)
+{
+	std::unique_lock<std::mutex>	u(ms);
+	sum += increment;
+	u.unlock();
+}
+
 
 static void work()
 {
