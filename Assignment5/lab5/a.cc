@@ -11,7 +11,7 @@ std::mutex		ms;
 class worklist_t {
 	int*			a;
 	size_t			n;
-	size_t			total;	// sum a[0]..a[n-1]
+	volatile size_t			total;	// sum a[0]..a[n-1]
 	std::mutex		m;
 	std::condition_variable c;
 		
@@ -40,7 +40,7 @@ public:
 
 	void put(int num)
 	{
-
+		std::unique_lock<std::mutex>	u(m);
 		a[num] += 1;
 		total += 1;
 		c.notify_all();
@@ -166,7 +166,7 @@ int main(void)
 
 	init_timebase();
 
-	iterations	= 100000;
+	iterations	= 10000;
 	max		= 12;
 	correct		= 0;
 
