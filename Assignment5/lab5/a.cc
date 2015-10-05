@@ -6,7 +6,7 @@
 
 #include "timebase.h"
 
-static void addToSum(int increment);
+static void addToSum(unsigned long long increment);
 std::mutex		ms;
 class worklist_t {
 	int*			a;
@@ -127,7 +127,7 @@ static void consume()
 	}
 }
 
-static void addToSum(int increment)
+static void addToSum(unsigned long long increment)
 {
 	std::unique_lock<std::mutex>	u(ms);
 	sum += increment;
