@@ -7,11 +7,12 @@
 #include "timebase.h"
 
 static void addToSum(int increment);
+std::mutex		ms;
 class worklist_t {
 	int*			a;
 	size_t			n;
 	size_t			total;	// sum a[0]..a[n-1]
-	std::mutex		m, ms;
+	std::mutex		m;
 	std::condition_variable c;
 		
 public:
@@ -86,7 +87,7 @@ public:
 			i = 0;
 
 		
-		u.unlock();
+		//u.unlock();
 		c.notify_one();
 		
 		return i;
