@@ -40,8 +40,10 @@ public:
 
 	void put(int num)
 	{
+
 		a[num] += 1;
 		total += 1;
+		c.notify_all();
 	}
 
 	int get()
@@ -88,7 +90,7 @@ public:
 
 		
 		//u.unlock();
-		c.notify_one();
+		//c.notify_one();
 		
 		return i;
 	}
