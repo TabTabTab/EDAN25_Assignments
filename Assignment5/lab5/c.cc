@@ -58,7 +58,11 @@ public:
 		 *
 		 */
 
-		flag.test_and_set(std::memory_order_acquire);
+		while (flag.test_and_set(std::memory_order_acquire)) {
+			if(!flag.test_and_set(std::memory_order_acquire)) {
+				return total > 0;
+			}
+		}
 
 		/* the lambda is a predicate that 
 		 * returns false when waiting should 
