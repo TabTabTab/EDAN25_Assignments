@@ -79,8 +79,9 @@ public:
 			while(flag.test_and_set(std::memory_order_acquire)){
 
 			}
-			if (a[i] > 0)
+			if (a[i] > 0) {
 				break;
+			}
 
 		if (i <= n) {
 			a[i] -= 1;
@@ -88,8 +89,9 @@ public:
 		} else if (a[0] == 0) {
 			fprintf(stderr, "corrupt data at line %d!\n", __LINE__);
 			abort();
-		} else
+		} else {
 			i = 0;
+		}
 
 		
 		//u.unlock();
