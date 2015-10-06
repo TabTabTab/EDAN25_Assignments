@@ -57,10 +57,15 @@ public:
 		 * (i.e. total > 0) as follows.
 		 *
 		 */
-
-		while (flag.test_and_set(std::memory_order_acquire)) {
-			// Spin
+		while (total <= 0){
+			while (flag.test_and_set(std::memory_order_acquire)) {
+				if (total > 0) {
+					flag.clear(std::memory_order_release);
+					break;
+				}
+			}
 		}
+		
 
 		
 
@@ -75,8 +80,6 @@ public:
 		 *
 		 */
 		 flag.clear(std::memory_order_release);
-
-		 return total > 0;
 
 		
 #endif
