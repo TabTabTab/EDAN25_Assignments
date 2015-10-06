@@ -59,10 +59,10 @@ public:
 		 */
 
 		while (flag.test_and_set(std::memory_order_acquire)) {
-			if(!flag.test_and_set(std::memory_order_acquire)) {
-				return total > 0;
-			}
+			// Spin
 		}
+
+		
 
 		/* the lambda is a predicate that 
 		 * returns false when waiting should 
@@ -74,8 +74,11 @@ public:
 		 * the destructor of u is called.
 		 *
 		 */
+		 flag.clear(std::memory_order_release);
 
-		flag.clear(std::memory_order_release);
+		 return total > 0;
+
+		
 #endif
 
 		for (i = 1; i <= n; i += 1)
