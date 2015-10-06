@@ -50,13 +50,20 @@ public:
 		int				i;
 		int				num;
 
-#if 0
+#if 1
 		/* hint: if your class has a mutex m
 		 * and a condition_variable c, you
 		 * can lock it and wait for a number 
 		 * (i.e. total > 0) as follows.
 		 *
 		 */
+		 while (!(total > 0)) {
+		 	while(flag.test_and_set(std::memory_order_acquire)){
+
+			}
+		 }
+		 	
+
 		
 
 		
@@ -71,17 +78,15 @@ public:
 		 * the destructor of u is called.
 		 *
 		 */
+		 flag.clear(std::memory_order_release);
+
 
 		
 #endif
 
 		for (i = 1; i <= n; i += 1)
-			while(flag.test_and_set(std::memory_order_acquire)){
-
-			}
-			if (a[i] > 0) {
+			if (a[i] > 0)
 				break;
-			}
 
 		if (i <= n) {
 			a[i] -= 1;
@@ -89,14 +94,12 @@ public:
 		} else if (a[0] == 0) {
 			fprintf(stderr, "corrupt data at line %d!\n", __LINE__);
 			abort();
-		} else {
+		} else 
 			i = 0;
-		}
 
 		
 		//u.unlock();
 		//c.notify_one();
-		flag.clear(std::memory_order_release);
 		return i;
 	}
 };
