@@ -50,21 +50,13 @@ public:
 		int				i;
 		int				num;
 
-#if 1
+#if 0
 		/* hint: if your class has a mutex m
 		 * and a condition_variable c, you
 		 * can lock it and wait for a number 
 		 * (i.e. total > 0) as follows.
 		 *
 		 */
-		while (total <= 0){
-			while (flag.test_and_set(std::memory_order_acquire)) {
-				if (total > 0) {
-					flag.clear(std::memory_order_release);
-					break;
-				}
-			}
-		}
 		
 
 		
@@ -79,12 +71,14 @@ public:
 		 * the destructor of u is called.
 		 *
 		 */
-		 flag.clear(std::memory_order_release);
 
 		
 #endif
 
 		for (i = 1; i <= n; i += 1)
+			while(flag.test_and_set(std::memory_order_acquire)){
+
+			}
 			if (a[i] > 0)
 				break;
 
@@ -100,7 +94,7 @@ public:
 		
 		//u.unlock();
 		//c.notify_one();
-		
+		flag.clear(std::memory_order_release);
 		return i;
 	}
 };
