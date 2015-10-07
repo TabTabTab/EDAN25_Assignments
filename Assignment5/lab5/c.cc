@@ -77,6 +77,7 @@ public:
 
 		while (total <= 0){
 			spin->lock();
+			spin->unlock();
 		}
 		for (i = 1; i <= n; i += 1)
 			if (a[i] > 0)
