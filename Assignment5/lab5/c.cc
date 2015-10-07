@@ -74,10 +74,14 @@ public:
 	{
 		int				i;
 		int				num;
-
-		while (total <= 0){
+		bool haz_it = false;
+		while(!haz_it){
+			while (total <= 0);
 			spin->lock();
-			spin->unlock();
+			haz_it = total>0;
+			if(!haz_it){
+				spin->unlock();
+			}
 		}
 		for (i = 1; i <= n; i += 1)
 			if (a[i] > 0)
