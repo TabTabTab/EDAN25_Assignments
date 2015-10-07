@@ -11,8 +11,7 @@ static void addToSum(unsigned long long increment);
 
 class spinlock_t {
 private:
-	std::atomic_flag flag = ATOMIC_FLAG_INIT;
-	int a = 1;	
+	std::atomic_flag flag = ATOMIC_FLAG_INIT;	
 public:
 	spinlock_t()
 	{		
@@ -24,7 +23,6 @@ public:
 
 void lock() 
 {
-	a + 1;
 	while(flag.test_and_set(std::memory_order_acquire));
 }
 
