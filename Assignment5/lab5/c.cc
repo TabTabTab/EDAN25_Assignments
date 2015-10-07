@@ -75,8 +75,8 @@ public:
 		int				i;
 		int				num;
 
-		while (total > 0){
-		spin->lock();
+		while (total <= 0){
+			spin->lock();
 		}
 		for (i = 1; i <= n; i += 1)
 			if (a[i] > 0)
