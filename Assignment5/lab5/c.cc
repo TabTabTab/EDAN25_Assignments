@@ -10,12 +10,12 @@
 static void addToSum(unsigned long long increment);
 
 class spinlock_t {
-	
-		
+private:
+	std::atomic_flag flag = ATOMIC_FLAG_INIT;
+	int a = 1;	
 public:
-	spinlock_t(std::atomic_flag lock): flag(lock)
-	{
-		
+	spinlock_t()
+	{		
 	}
 	~spinlock_t()
 	{	
@@ -24,6 +24,7 @@ public:
 
 void lock() 
 {
+	a + 1;
 	while(flag.test_and_set(std::memory_order_acquire));
 }
 
@@ -31,19 +32,13 @@ void unlock()
 {
 	flag.clear(std::memory_order_release); 
 }
-
-
-private: 
-	std::atomic_flag flag;
-
-}
+};
 
 class worklist_t {
 	int*			a;
 	size_t			n;
 	volatile size_t			total;	// sum a[0]..a[n-1]
-	spinlock_t spin;
-	std::atomic_flag flag = ATOMIC_FLAG_INIT;
+	spinlock_t* spin;
 		
 public:
 	worklist_t(size_t max)
@@ -55,7 +50,7 @@ public:
 			fprintf(stderr, "no memory!\n");
 			abort();
 		}
-		spin = new spinlock_t(flag);
+		spin = new spinlock_t();
 	}
 
 	~worklist_t()
@@ -71,10 +66,10 @@ public:
 
 	void put(int num)
 	{
-		while(flag.test_and_set(std::memory_order_acquire));
+		spin->lock();
 		a[num] += 1;
 		total += 1;
-		flag.clear(std::memory_order_release);
+		spin->unlock();
 	}
 
 	int get()
@@ -83,7 +78,7 @@ public:
 		int				num;
 
 		while(!(total > 0)) {
-			spin.lock();
+			spin->lock();
 		}
 		
 		for (i = 1; i <= n; i += 1)
@@ -102,7 +97,7 @@ public:
 		
 		//u.unlock();
 		//c.notify_one();
-		spin.unlock();
+		spin->unlock();
 		return i;
 	}
 };
