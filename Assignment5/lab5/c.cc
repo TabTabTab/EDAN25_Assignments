@@ -8,11 +8,42 @@
 #include "timebase.h"
 
 static void addToSum(unsigned long long increment);
+
+class spinlock_t {
+	
+		
+public:
+	spinlock_t(std::atomic_flag lock): flag(lock)
+	{
+		
+	}
+	~spinlock_t()
+	{	
+		//flag.clear(std::memory_order_release);
+	}
+
+void lock() 
+{
+	while(flag.test_and_set(std::memory_order_acquire));
+}
+
+void unlock() 
+{
+	flag.clear(std::memory_order_release); 
+}
+
+
+private: 
+	std::atomic_flag flag;
+
+}
+
 class worklist_t {
 	int*			a;
 	size_t			n;
 	volatile size_t			total;	// sum a[0]..a[n-1]
-	std::atomic_flag flag;
+	spinlock_t spin;
+	std::atomic_flag flag = ATOMIC_FLAG_INIT;
 		
 public:
 	worklist_t(size_t max)
@@ -24,6 +55,7 @@ public:
 			fprintf(stderr, "no memory!\n");
 			abort();
 		}
+		spin = new spinlock_t(flag);
 	}
 
 	~worklist_t()
@@ -39,7 +71,7 @@ public:
 
 	void put(int num)
 	{
-		flag.test_and_set(std::memory_order_acquire);
+		while(flag.test_and_set(std::memory_order_acquire));
 		a[num] += 1;
 		total += 1;
 		flag.clear(std::memory_order_release);
@@ -50,44 +82,10 @@ public:
 		int				i;
 		int				num;
 
-#if 1
-		/* hint: if your class has a mutex m
-		 * and a condition_variable c, you
-		 * can lock it and wait for a number 
-		 * (i.e. total > 0) as follows.
-		 *
-		 */
-		 while (!(total > 0)) {
-		 	while(flag.test_and_set(std::memory_order_acquire)){
-		 		if(total > 0){
-		 			flag.clear(std::memory_order_release);
-		 			break;
-		 		}
-			}
-
-		 }
-		 	
-
+		while(!(total > 0)) {
+			spin.lock();
+		}
 		
-
-		
-
-		/* the lambda is a predicate that 
-		 * returns false when waiting should 
-		 * continue.
-		 *
-		 * this mechanism will automatically
-		 * unlock the mutex m when you return
-		 * from this function. this happens when
-		 * the destructor of u is called.
-		 *
-		 */
-		 flag.clear(std::memory_order_release);
-
-
-		
-#endif
-
 		for (i = 1; i <= n; i += 1)
 			if (a[i] > 0)
 				break;
@@ -104,6 +102,7 @@ public:
 		
 		//u.unlock();
 		//c.notify_one();
+		spin.unlock();
 		return i;
 	}
 };
