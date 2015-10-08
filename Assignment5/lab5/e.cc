@@ -29,12 +29,11 @@ void lock()
         // is no longer what's stored in new_node->next
         // (some other thread must have inserted a node just now)
         // then put that new head into new_node->next and try again
-        while(!std::atomic_compare_exchange_weak_explicit(
-                                &flag, // detta vil lvi sätta till true
-                                &f, //detta vill vi att den var innan
+        while(!flag.compare_exchange_weak(
+                                f, //detta vill vi att den var innan
                                 true, //detta önskar vi sätta
-                                std::memory_order_acquire,
-                                std::memory_order_relaxed)){
+                                std::memory_order_acq_rel,
+                                std::memory_order_acquire)){
         	f = false;
         }
 
@@ -43,6 +42,7 @@ void lock()
 
 void unlock() 
 {
+	/*
 	bool t = true;
 	while(!std::atomic_compare_exchange_weak_explicit(
                                 &flag, // detta vil lvi sätta till true
@@ -51,7 +51,8 @@ void unlock()
                                 std::memory_order_acquire,
                                 std::memory_order_relaxed)){
         	t = true;
-    }
+    	}*/
+	flag.store(false, std::memory_order_release);
 }
 };
 
