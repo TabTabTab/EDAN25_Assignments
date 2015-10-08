@@ -51,7 +51,7 @@ void unlock()
                                 std::memory_order_acquire,
                                 std::memory_order_relaxed)){
         	t = true;
-        }
+    }
 }
 };
 
@@ -97,14 +97,12 @@ public:
 	{
 		int				i;
 		int				num;
-		bool haz_it = false;
-		while(!haz_it){
-			while (total <= 0);
+		while(true){
+			while(total <= 0);
 			spin->lock();
-			haz_it = total>0;
-			if(!haz_it){
-				spin->unlock();
-			}
+			if(total>0)
+				break;
+			spin->unlock();
 		}
 		for (i = 1; i <= n; i += 1)
 			if (a[i] > 0)
@@ -119,9 +117,6 @@ public:
 		} else 
 			i = 0;
 
-		
-		//u.unlock();
-		//c.notify_one();
 		spin->unlock();
 		return i;
 	}
