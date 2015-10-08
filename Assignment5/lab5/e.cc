@@ -11,7 +11,7 @@ static void addToSum(unsigned long long increment);
 
 class spinlock_t {
 private:
-	std::atomic_flag flag = ATOMIC_FLAG_INIT;	
+	std::atomic<bool> flag = false;
 public:
 	spinlock_t()
 	{		
@@ -23,7 +23,22 @@ public:
 
 void lock() 
 {
-	while(flag.test_and_set(std::memory_order_acquire));
+		bool f = false;
+ 
+        // now make new_node the new head, but if the head
+        // is no longer what's stored in new_node->next
+        // (some other thread must have inserted a node just now)
+        // then put that new head into new_node->next and try again
+        while(!std::atomic_compare_exchange_weak_explicit(
+                                &flag, // detta vil lvi sätta till true
+                                &f, //detta vill vi att den var innan
+                                true, //detta önskar vi sätta
+                                std::memory_order_acquire,
+                                std::memory_order_relaxed)){
+        	f = false;
+        }
+
+	//while(flag.test_and_set(std::memory_order_acquire));
 }
 
 void unlock() 
