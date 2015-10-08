@@ -11,7 +11,7 @@ static void addToSum(unsigned long long increment);
 
 class spinlock_t {
 private:
-	std::atomic<bool> flag = false;
+	std::atomic<bool> flag = ATOMIC_VAR_INIT(false);
 public:
 	spinlock_t()
 	{		
@@ -43,7 +43,15 @@ void lock()
 
 void unlock() 
 {
-	flag.clear(std::memory_order_release); 
+	bool t = true;
+	while(!std::atomic_compare_exchange_weak_explicit(
+                                &flag, // detta vil lvi sätta till true
+                                &t, //detta vill vi att den var innan
+                                false, //detta önskar vi sätta
+                                std::memory_order_acquire,
+                                std::memory_order_relaxed)){
+        	t = true;
+        }
 }
 };
 
